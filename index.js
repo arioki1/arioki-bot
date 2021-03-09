@@ -5,8 +5,9 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 require('dotenv').config()
 const app = express()
-const {CHAT_ID_TEST, TELEGRAM_BOT_TOKEN} = process.env
+const {CHAT_ID_TEST, TELEGRAM_BOT_TOKEN, WEBHOOK_NEWSPAPER_URL} = process.env
 const BASE_URL_TELEGRAM = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`
+const { Webhook } = require('discord-webhook-node');
 
 const instance = axios.create({
     baseURL: BASE_URL_TELEGRAM,
@@ -57,8 +58,26 @@ app.all('/bot', async (req, res) => {
     res.send('Hello World!')
 })
 
+app.post('/rss', async (req, res) => {
+    const {title, link, description} = req.body
+    let text = `Update Erepublik Newspaper from eIndonesia\n\n ${title} \n${description}`
+    let button = [[{
+        "text": 'READ ARTICLE',
+        "url": link
+    }]]
+    await sendMessageText(CHAT_ID_TEST, text, button)
+    await sendDiscordWebHook(title, description, link)
+    res.send('Hello World!')
+})
+
 app.all('/test', async (req, res) => {
-    await getUrlUdemy(CHAT_ID_TEST, 'https://insidelearn.com/the-complete-java-development-bootcamp')
+    let text = `Update Erepublik Newspaper from eIndonesia`
+    let button = [[{
+        "text": 'READ ARTICLE',
+        "url": "google.com"
+    }]]
+    await sendMessageText(CHAT_ID_TEST, text, button)
+    await sendDiscordWebHook('test', text, "http://google.com")
     res.send('Hello World!')
 })
 
@@ -122,6 +141,11 @@ const getUrlUdemy = async (chatId, url) => {
             resolve()
         }, 1500);
     })
+}
+
+const sendDiscordWebHook = async (title, message, url) => {
+    const hook = new Webhook(WEBHOOK_NEWSPAPER_URL);
+    await hook.info(title, message, url);
 }
 
 module.exports.handler = serverless(app);
